@@ -90,3 +90,46 @@ void loop() {
   delay(100);
 }
 
+// -----------------------------------------------------------
+//  MOTOR CONTROL
+// -----------------------------------------------------------
+
+void moveForward() {
+  analogWrite(RPWM_LEFT,  MOTOR_SPEED);
+  analogWrite(LPWM_LEFT,  0);
+  analogWrite(RPWM_RIGHT, MOTOR_SPEED);
+  analogWrite(LPWM_RIGHT, 0);
+}
+
+void stopMotors() {
+  analogWrite(RPWM_LEFT,  0);
+  analogWrite(LPWM_LEFT,  0);
+  analogWrite(RPWM_RIGHT, 0);
+  analogWrite(LPWM_RIGHT, 0);
+}
+
+void adjustAlignment() {
+  // Slight right correction — tune as needed
+  analogWrite(RPWM_LEFT,  MOTOR_SPEED);
+  analogWrite(LPWM_LEFT,  0);
+  analogWrite(RPWM_RIGHT, MOTOR_SPEED / 2);
+  analogWrite(LPWM_RIGHT, 0);
+  delay(200);
+}
+
+// -----------------------------------------------------------
+//  ALERT
+// -----------------------------------------------------------
+
+void triggerAlert() {
+  digitalWrite(LED_PIN,    HIGH);
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(1000);
+  digitalWrite(BUZZER_PIN, LOW);
+  delay(500);
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(500);
+  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(LED_PIN,    LOW);
+}
+
