@@ -4,33 +4,29 @@
 //  Team: Abhinav Srivastava, Shekhar Singh, Tanishka Agarwal, Mohd. Junaid
 // ============================================================
 
-// -------------------- PIN DEFINITIONS ----------------------
+// -------------------- IR SENSORS ---------------------------
+#define IR_LEFT_RAIL   34   // IR Sensor 1 — Left rail monitor
+#define IR_RIGHT_RAIL  35   // IR Sensor 2 — Right rail monitor
 
-// IR Sensors
-#define IR_ALIGNMENT   34   // IR Sensor 1 — Track alignment (LEFT)
-#define IR_CRACK       35   // IR Sensor 2 — Crack / Obstacle detection (RIGHT)
+// -------------------- MOTOR DRIVER LEFT (BTS7960 #1) -------
+#define RPWM_LEFT      25
+#define LPWM_LEFT      26
+#define R_EN_LEFT      27
+#define L_EN_LEFT      14
 
-// BTS7960 Motor Driver — Left Motors
-#define RPWM_LEFT      25   // Right PWM (Forward)
-#define LPWM_LEFT      26   // Left PWM  (Backward)
-#define R_EN_LEFT      27   // Right Enable
-#define L_EN_LEFT      14   // Left Enable
+// -------------------- MOTOR DRIVER RIGHT (BTS7960 #2) ------
+#define RPWM_RIGHT     32
+#define LPWM_RIGHT     33
+#define R_EN_RIGHT     18
+#define L_EN_RIGHT     19
 
-// BTS7960 Motor Driver — Right Motors
-#define RPWM_RIGHT     32   // Right PWM (Forward)
-#define LPWM_RIGHT     33   // Left PWM  (Backward)
-#define R_EN_RIGHT     18   // Right Enable
-#define L_EN_RIGHT     19   // Left Enable
+// -------------------- ALERTS --------------------------------
+#define LED_PIN        22
+#define BUZZER_PIN     23
 
-// Alert
-#define BUZZER_PIN     23   // Buzzer
-#define LED_PIN        22   // Fault LED
-
-// -------------------- CONSTANTS ----------------------------
-
-#define MOTOR_SPEED     180   // 0-255 — adjust as needed
-#define IR_FAULT_VAL    LOW   // LOW = obstacle/crack detected (adjust per sensor)
-#define IR_ALIGN_VAL    LOW   // LOW = off-track
+// -------------------- MOTOR SETTINGS -----------------------
+#define MOTOR_SPEED    180   // 0-255
+#define IR_FAULT_VAL   LOW   // LOW = rail not detected (crack/gap)
 
 // -----------------------------------------------------------
 
@@ -38,55 +34,49 @@ void setup() {
   Serial.begin(115200);
   Serial.println("sDx Legends — Track Monitor Booting...");
 
-  // IR Sensors
-  pinMode(IR_ALIGNMENT, INPUT);
-  pinMode(IR_CRACK,     INPUT);
+  pinMode(IR_LEFT_RAIL,  INPUT);
+  pinMode(IR_RIGHT_RAIL, INPUT);
 
-  // Motor Driver Enables
   pinMode(R_EN_LEFT,  OUTPUT); digitalWrite(R_EN_LEFT,  HIGH);
   pinMode(L_EN_LEFT,  OUTPUT); digitalWrite(L_EN_LEFT,  HIGH);
   pinMode(R_EN_RIGHT, OUTPUT); digitalWrite(R_EN_RIGHT, HIGH);
   pinMode(L_EN_RIGHT, OUTPUT); digitalWrite(L_EN_RIGHT, HIGH);
 
-  // Motor PWM pins
   pinMode(RPWM_LEFT,  OUTPUT);
   pinMode(LPWM_LEFT,  OUTPUT);
   pinMode(RPWM_RIGHT, OUTPUT);
   pinMode(LPWM_RIGHT, OUTPUT);
 
-  // Alert pins
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN,    OUTPUT);
 
   stopMotors();
-  Serial.println("System Ready.");
+  Serial.println("System Ready. Monitoring both rails...");
 }
 
 // -----------------------------------------------------------
 
 void loop() {
-  int irAlign = digitalRead(IR_ALIGNMENT);
-  int irCrack = digitalRead(IR_CRACK);
+  int irLeft  = digitalRead(IR_LEFT_RAIL);
+  int irRight = digitalRead(IR_RIGHT_RAIL);
 
-  // FAULT DETECTED — crack or obstacle
-  if (irCrack == IR_FAULT_VAL) {
+  if (irLeft == IR_FAULT_VAL || irRight == IR_FAULT_VAL) {
     stopMotors();
     triggerAlert();
-    Serial.println("FAULT DETECTED — Crack / Obstacle!");
-    delay(2000);  // Hold alert for 2 seconds
+
+    if (irLeft == IR_FAULT_VAL && irRight == IR_FAULT_VAL)
+      Serial.println("FAULT — Both rails missing!");
+    else if (irLeft == IR_FAULT_VAL)
+      Serial.println("FAULT — Left rail crack/gap detected!");
+    else
+      Serial.println("FAULT — Right rail crack/gap detected!");
+
+    delay(2000);
     return;
   }
 
-  // OFF TRACK — realign
-  if (irAlign == IR_ALIGN_VAL) {
-    adjustAlignment();
-    Serial.println(" Adjusting alignment...");
-    return;
-  }
-
-  // ALL CLEAR — move forward
   moveForward();
-  Serial.println(" Moving forward — track clear.");
+  Serial.println("Both rails OK — moving forward.");
   delay(100);
 }
 
@@ -106,15 +96,6 @@ void stopMotors() {
   analogWrite(LPWM_LEFT,  0);
   analogWrite(RPWM_RIGHT, 0);
   analogWrite(LPWM_RIGHT, 0);
-}
-
-void adjustAlignment() {
-  // Slight right correction — tune as needed
-  analogWrite(RPWM_LEFT,  MOTOR_SPEED);
-  analogWrite(LPWM_LEFT,  0);
-  analogWrite(RPWM_RIGHT, MOTOR_SPEED / 2);
-  analogWrite(LPWM_RIGHT, 0);
-  delay(200);
 }
 
 // -----------------------------------------------------------
